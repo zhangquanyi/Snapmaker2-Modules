@@ -86,6 +86,8 @@ typedef struct {
     float z_hotend_offset;
     float probe_sensor_compensation_0;
     float probe_sensor_compensation_1;
+    float probe_sensor_1_compression;   // right nozzle compression moving distance
+    uint16_t probe_sensor_1_check_mark;
 } AppParmInfo;
 
 typedef enum {

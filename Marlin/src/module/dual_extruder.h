@@ -64,6 +64,9 @@
 
 #define PROTECTION_TEMPERATURE  320
 
+#define Z_DEFAULT_CAIL_POSITION                 4.3//5.0
+#define Z_DEFAULT_MAX_MOVE_POSITION             7.5
+
 typedef enum {
   LEFT_MODEL_FAN,
   RIGHT_MODEL_FAN,
@@ -84,12 +87,25 @@ typedef enum {
   GO_HOME,
   MOVE_SYNC,
   MOVE_ASYNC,
+  MOVE_SENSOR_CALI_DEFAULT_POSITION,
+  MOVE_SENSOR_EXTRUDER_COMPRESSION,
+  MOVE_SENSOR_AUTO_CALI_COMPRESSION,
 }move_type_t;
 
 typedef enum {
   MOVE_STATE_SUCCESS,
   MOVE_STATE_FAIL,
 }move_state_e;
+
+typedef enum {
+  MOVE_SUCCESS,
+  MOVE_GO_HOME_FAIL,
+  MOVE_PARAM_ERR,
+  MOVE_SENSOR_STATUS_ERR,
+  MOVE_SENSOR_EXCEPTION_TRIGGER,
+  MOVE_SENSOR_NO_TRIGGER,
+  MOVE_SENSOR_TRIGGER_DISTANCE_ERR,
+}move_cail_state_e;
 
 class DualExtruder : public ModuleBase {
   public:
@@ -111,7 +127,9 @@ class DualExtruder : public ModuleBase {
       homed_state_ = 0;
       speed_ctrl_index_ = 0;
       raise_for_home_pos_ = 3.3;
-      z_max_position_ = 5.0;
+      z_max_position_ = Z_DEFAULT_CAIL_POSITION;
+      z_cail_position_ = 0;
+      is_cali_mode = false;
     }
     void Init();
     void HandModule(uint16_t func_id, uint8_t * data, uint8_t data_len);
@@ -119,8 +137,8 @@ class DualExtruder : public ModuleBase {
     void StepperTimerStart(uint16_t time);
     void StepperTimerStop();
     void MoveSync();
-    move_state_e GoHome();
-    void MoveToDestination(uint8_t *data);
+    move_state_e GoHome(bool init_index=true);
+    void MoveToDestination(uint8_t *data, uint8_t data_len);
     void PrepareMoveToDestination(float position, float speed);
     void DoBlockingMoveToZ(float length, float speed);
     void ReportOutOfMaterial();
@@ -132,7 +150,7 @@ class DualExtruder : public ModuleBase {
     void ExtruderStatusCheckCtrl(extruder_status_e status);
     void ExtruderStatusCheck();
     void ExtruderSwitching(uint8_t *data);
-    void ExtruderSwitcingWithMotor(uint8_t *data);
+    void ExtruderSwitcingWithMotor(uint8_t *data, uint8_t data_len);
     void ReportNozzleType();
     void ReportExtruderInfo();
     void SetHotendOffset (uint8_t *data);
@@ -145,6 +163,9 @@ class DualExtruder : public ModuleBase {
     void ReportHWVersion();
     void EmergencyStop();
     void Loop();
+    uint8_t MoveSensorCalibrationPosition(uint8_t mode, bool is_home=true);
+    uint8_t AutoCalibrationRightExtruder(float z_max_move_position=Z_DEFAULT_MAX_MOVE_POSITION, float speed=9);
+    uint16_t RightExtruderCompensationCal(float compensation);
 
     Fan left_model_fan_;
     Fan right_model_fan_;
@@ -193,6 +214,8 @@ class DualExtruder : public ModuleBase {
     volatile uint8_t hit_state_;
     float raise_for_home_pos_;
     float z_max_position_;
+    float z_cail_position_;
+    bool is_cali_mode;
 
     uint32_t overtemp_debounce_[2];
 
